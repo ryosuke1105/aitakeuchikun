@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIたけちゃん</title>
+    
+    <!-- CSS Stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/cyber.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/yumekawaii.css') }}">
+</head>
+<body class="{% if authenticated %}yumekawaii-theme{% else %}cyber-theme{% endif %}">
+
+    <!-- Glitch & Noise Blackout Overlay for Screen Transition -->
+    <div id="noise-overlay"></div>
+
+    <!-- ====================================================================
+         SCREEN A: SERIOUS CYBER SECURITY AUTHENTICATION
+         ==================================================================== -->
+    <div id="cyber-screen" style="{% if authenticated %}display: none;{% else %}display: block;{% endif %}">
+        <!-- CRT Monitor Effects -->
+        <div class="crt-overlay"></div>
+        <div class="crt-scanline"></div>
+
+        <div class="cyber-container">
+            <div class="cyber-header">
+                <h1 class="metallic-title">CYBER SECURITY AUTHENTICATION</h1>
+                <div class="cyber-subtitle">[ SECURE GOOGLE DRIVE PDF INTELLIGENCE SYSTEM ]</div>
+            </div>
+
+            <div class="terminal-box">
+                <div class="cyber-log">
+                    <div>> STATUS: RESTRICTED CLASSIFIED LEVEL-5 ACCESS</div>
+                    <div>> GOOGLE DRIVE PDF DATABASE: <span class="status-ok">ENCRYPTED & READY</span></div>
+                    <div>> GEMINI AI CROSS-DOCUMENT ENGINE: <span class="status-ok">ONLINE</span></div>
+                    <div class="alert-warn">> WARNING: UNAUTHORIZED ACCESS IS STRICTLY MONITORED.</div>
+                    <div>> ENTER SECURITY CLEARANCE PASSCODE TO PROCEED...<span class="blinking-cursor"></span></div>
+                </div>
+
+                <form id="cyber-auth-form" class="cyber-form" onsubmit="return false;">
+                    <div class="input-wrapper">
+                        <label for="passcode-input" class="cyber-label">// ACCESS PASSCODE:</label>
+                        <input 
+                            type="password" 
+                            id="passcode-input" 
+                            class="cyber-input" 
+                            placeholder="••••••••••••" 
+                            autocomplete="off" 
+                            required
+                        >
+                    </div>
+
+                    <button type="submit" id="auth-btn" class="cyber-btn">
+                        [ AUTHENTICATE / ENTER ]
+                    </button>
+                </form>
+
+                <div id="cyber-error-msg" class="cyber-error"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ====================================================================
+         SCREEN B: HARAJUKU "SUPER YUME-KAWAII" Q&A MAIN SCREEN
+         ==================================================================== -->
+    <div id="yumekawaii-screen" style="{% if authenticated %}display: block;{% else %}display: none;{% endif %}">
+        
+        <!-- Floating Background Animations -->
+        <div class="floating-bg-elements">
+            <div class="float-item cloud" style="left: 5%; animation-duration: 18s; animation-delay: 0s;">☁️</div>
+            <div class="float-item" style="left: 15%; animation-duration: 12s; animation-delay: 2s;">✨</div>
+            <div class="float-item" style="left: 28%; animation-duration: 15s; animation-delay: 4s;">💖</div>
+            <div class="float-item cloud" style="left: 50%; animation-duration: 20s; animation-delay: 1s;">☁️</div>
+            <div class="float-item" style="left: 65%; animation-duration: 14s; animation-delay: 3s;">⭐</div>
+            <div class="float-item" style="left: 78%; animation-duration: 16s; animation-delay: 5s;">💖</div>
+            <div class="float-item cloud" style="left: 88%; animation-duration: 22s; animation-delay: 7s;">☁️</div>
+        </div>
+
+        <div class="kawaii-container">
+            
+            <!-- App Header -->
+            <header class="kawaii-header">
+                <div class="logout-btn-wrapper">
+                    <button id="logout-btn" class="kawaii-logout-btn">🔒 ログアウト</button>
+                </div>
+                <h1 class="kawaii-title">✨ AIたけちゃん ✨</h1>
+                <div class="kawaii-subtitle">💖 今までのお手紙から回答するよ♪ 💖</div>
+            </header>
+
+            <!-- Main Input Card -->
+            <main class="kawaii-card">
+                <form id="kawaii-qa-form" onsubmit="return false;">
+                    
+                    <!-- Question Input -->
+                    <div class="form-group">
+                        <label for="question-input" class="form-label">
+                            <span class="icon">💬</span> AIたけちゃんにききたいこと：
+                        </label>
+                        <textarea 
+                            id="question-input" 
+                            class="kawaii-textarea" 
+                            placeholder="例：Actionに込めた想いを教えて！" 
+                            rows="4" 
+                            required
+                        ></textarea>
+                    </div>
+
+                    <!-- Character Limit Controls -->
+                    <div class="controls-row">
+                        <div class="form-label" style="margin: 0;">
+                            <span class="icon">📏</span> 回答の文字数制限：
+                        </div>
+
+                        <div class="slider-container">
+                            <input 
+                                type="range" 
+                                id="char-limit-slider" 
+                                class="kawaii-slider" 
+                                min="50" 
+                                max="1000" 
+                                step="10" 
+                                value="300"
+                            >
+                            <div class="number-input-box">
+                                <input 
+                                    type="number" 
+                                    id="char-limit-number" 
+                                    class="kawaii-number-input" 
+                                    min="50" 
+                                    max="1000" 
+                                    value="300"
+                                >
+                                <span style="font-weight: 800; color: #6b4c7d;">文字以内</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="submit-btn-container">
+                        <button type="submit" id="ask-btn" class="kawaii-submit-btn">
+                            <span>✨ AIたけちゃんに質問する！ ✨</span>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Q&A Results & Loading Container -->
+                <section class="answer-section">
+                    
+                    <!-- Sparkle Loading Animation -->
+                    <div id="kawaii-loading" class="kawaii-loading">
+                        <div class="sparkle-spinner">✨</div>
+                        <div class="loading-text">AIたけちゃんが過去のおてがみをそうさく中...💖</div>
+                    </div>
+
+                    <!-- Answer Cloud Bubble Card -->
+                    <div id="answer-container" style="display: none;">
+                        <div class="cloud-card">
+                            <div class="answer-header">
+                                <div class="answer-title">
+                                    <span>💖 AIたけちゃんからの回答：</span>
+                                </div>
+                                <div id="char-count-badge" class="char-count-badge">
+                                    生成結果：0文字 / 上限 300文字
+                                </div>
+                            </div>
+
+                            <div id="answer-text" class="answer-body"></div>
+
+                            <div id="doc-sources-box" class="doc-sources-box">
+                                <span style="font-weight: 800; font-size: 0.85rem; color: #7b5294;">📂 参照PDF:</span>
+                                <div id="doc-sources-list" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Application Logic Script -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
