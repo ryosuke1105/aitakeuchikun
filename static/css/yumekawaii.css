@@ -1,0 +1,430 @@
+/* ==========================================================================
+   Screen B: Harajuku "Super Yume-Kawaii" Q&A Main Screen
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap');
+
+.yumekawaii-theme {
+    margin: 0;
+    padding: 0;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #ffdbe5 0%, #e8d5ff 35%, #d0f4de 70%, #fff3b0 100%);
+    background-size: 300% 300%;
+    animation: pastelGradientAnim 15s ease infinite;
+    color: #5d4037;
+    position: relative;
+    overflow-x: hidden;
+}
+
+@keyframes pastelGradientAnim {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Floating Elements Container */
+.floating-bg-elements {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.float-item {
+    position: absolute;
+    font-size: 2.2rem;
+    opacity: 0.6;
+    animation: floatUpSlow 12s linear infinite;
+    user-select: none;
+}
+
+.float-item.cloud {
+    font-size: 3.5rem;
+    filter: drop-shadow(0 4px 10px rgba(255, 255, 255, 0.8));
+}
+
+@keyframes floatUpSlow {
+    0% {
+        transform: translateY(110vh) rotate(0deg) scale(0.8);
+        opacity: 0;
+    }
+    20% {
+        opacity: 0.7;
+    }
+    80% {
+        opacity: 0.8;
+    }
+    100% {
+        transform: translateY(-20vh) rotate(360deg) scale(1.2);
+        opacity: 0;
+    }
+}
+
+/* Main Container */
+.kawaii-container {
+    max-width: 850px;
+    margin: 0 auto;
+    padding: 40px 20px 80px 20px;
+    position: relative;
+    z-index: 10;
+}
+
+/* App Header */
+.kawaii-header {
+    text-align: center;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.kawaii-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #ff6b9d;
+    text-shadow: 
+        3px 3px 0px #ffffff,
+        6px 6px 0px #e8d5ff,
+        0 8px 15px rgba(255, 107, 157, 0.3);
+    margin: 0 0 10px 0;
+    letter-spacing: 1px;
+}
+
+.kawaii-subtitle {
+    font-size: 1.1rem;
+    color: #7b5294;
+    background: rgba(255, 255, 255, 0.7);
+    display: inline-block;
+    padding: 6px 20px;
+    border-radius: 30px;
+    box-shadow: 0 4px 12px rgba(123, 82, 148, 0.15);
+    font-weight: 700;
+}
+
+/* Logout Button on Header */
+.logout-btn-wrapper {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+.kawaii-logout-btn {
+    background: #ffffff;
+    border: 2px solid #ffb6c1;
+    color: #ff6b9d;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(255, 182, 193, 0.4);
+    transition: all 0.2s ease;
+}
+
+.kawaii-logout-btn:hover {
+    background: #ffb6c1;
+    color: #fff;
+    transform: scale(1.05);
+}
+
+/* Puffy Main Card */
+.kawaii-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    border: 4px solid #ffffff;
+    border-radius: 32px;
+    padding: 35px 30px;
+    box-shadow: 
+        0 20px 40px rgba(186, 140, 224, 0.25),
+        inset 0 0 20px rgba(255, 255, 255, 0.8);
+    margin-bottom: 30px;
+}
+
+/* Form Group */
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #6b4c7d;
+    margin-bottom: 10px;
+}
+
+.form-label span.icon {
+    font-size: 1.4rem;
+}
+
+/* Question Input Textarea */
+.kawaii-textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 18px;
+    border: 3px solid #e8d5ff;
+    border-radius: 24px;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    font-size: 1.05rem;
+    color: #4a3556;
+    background: #fff;
+    box-sizing: border-box;
+    outline: none;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.03);
+    resize: vertical;
+}
+
+.kawaii-textarea:focus {
+    border-color: #ff9ebb;
+    box-shadow: 
+        0 0 0 6px rgba(255, 158, 187, 0.3),
+        inset 0 2px 4px rgba(0, 0, 0, 0.02);
+    transform: translateY(-2px);
+}
+
+/* Controls Row (Max Chars Selector) */
+.controls-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    background: rgba(232, 213, 255, 0.3);
+    padding: 16px 20px;
+    border-radius: 24px;
+    border: 2px dashed #d0bfff;
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 250px;
+}
+
+.kawaii-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 12px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #b5ead7 0%, #ffdac1 50%, #ff9aa2 100%);
+    outline: none;
+}
+
+.kawaii-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid #ff6b9d;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(255, 107, 157, 0.4);
+    transition: transform 0.2s ease;
+}
+
+.kawaii-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.25);
+}
+
+.number-input-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.kawaii-number-input {
+    width: 80px;
+    padding: 8px 10px;
+    border: 2px solid #b5ead7;
+    border-radius: 16px;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #4a3556;
+    text-align: center;
+    outline: none;
+    background: #ffffff;
+}
+
+.kawaii-number-input:focus {
+    border-color: #7bdff2;
+    box-shadow: 0 0 0 3px rgba(123, 223, 242, 0.4);
+}
+
+/* Submit Candy Button */
+.submit-btn-container {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.kawaii-submit-btn {
+    background: linear-gradient(180deg, #ff9ebb 0%, #ff6b9d 100%);
+    border: 4px solid #ffffff;
+    color: #ffffff;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 900;
+    padding: 16px 45px;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 
+        0 10px 25px rgba(255, 107, 157, 0.4),
+        inset 0 4px 6px rgba(255, 255, 255, 0.5);
+    letter-spacing: 1px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.kawaii-submit-btn:hover {
+    transform: scale(1.06) translateY(-3px);
+    background: linear-gradient(180deg, #ffb3c6 0%, #ff528c 100%);
+    box-shadow: 
+        0 15px 30px rgba(255, 82, 140, 0.5),
+        inset 0 4px 6px rgba(255, 255, 255, 0.6);
+}
+
+.kawaii-submit-btn:active {
+    transform: scale(0.96) translateY(2px);
+    box-shadow: 0 5px 15px rgba(255, 107, 157, 0.4);
+}
+
+/* Answer Display Section */
+.answer-section {
+    margin-top: 30px;
+}
+
+/* Sparkle Loading Box */
+.kawaii-loading {
+    display: none;
+    text-align: center;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 30px;
+    border: 3px dashed #ffb3c6;
+    margin-top: 20px;
+}
+
+.sparkle-spinner {
+    font-size: 3rem;
+    display: inline-block;
+    animation: sparkleSpin 1.8s infinite cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes sparkleSpin {
+    0% { transform: rotate(0deg) scale(0.8); }
+    50% { transform: rotate(180deg) scale(1.3); }
+    100% { transform: rotate(360deg) scale(0.8); }
+}
+
+.loading-text {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #ff6b9d;
+    margin-top: 10px;
+}
+
+/* Cloud / Speech Bubble Frame */
+.cloud-card {
+    position: relative;
+    background: #ffffff;
+    border: 4px solid #e8d5ff;
+    border-radius: 32px;
+    padding: 30px 30px 25px 30px;
+    box-shadow: 
+        0 12px 30px rgba(186, 140, 224, 0.2),
+        inset 0 0 15px rgba(255, 235, 245, 0.5);
+    margin-top: 20px;
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Little cloud puff tail decor */
+.cloud-card::before {
+    content: "☁️";
+    position: absolute;
+    top: -25px;
+    left: 40px;
+    font-size: 2.2rem;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));
+}
+
+.answer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px dashed #f0e4ff;
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.answer-title {
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: #7b5294;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Character Badge Counter */
+.char-count-badge {
+    background: linear-gradient(135deg, #e8d5ff 0%, #ffdbe5 100%);
+    border: 2px solid #ffffff;
+    color: #6b4c7d;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 800;
+    box-shadow: 0 4px 10px rgba(123, 82, 148, 0.15);
+}
+
+.char-count-badge.exceeded {
+    background: #ff477e;
+    color: #fff;
+}
+
+.answer-body {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #3d2b45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-weight: 700;
+}
+
+/* Source Documents Section */
+.doc-sources-box {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 2px solid #f9f0ff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.doc-source-tag {
+    background: #f0fdf4;
+    border: 1.5px solid #b5ead7;
+    color: #2b7058;
+    font-size: 0.8rem;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 700;
+}
