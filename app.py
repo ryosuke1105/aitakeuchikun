@@ -27,21 +27,28 @@ def index():
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    """Authenticate user with APP_PASSWORD."""
-    data = request.get_json() or {}
-    password = data.get('password', '')
+    """Authenticate user with APP_PASSWORD. Guaranteed 200 JSON return."""
+    try:
+        data = request.get_json() or {}
+        password = data.get('password', '')
 
-    if password == APP_PASSWORD:
-        session['authenticated'] = True
-        return jsonify({
-            "success": True,
-            "message": "AUTHENTICATION SUCCESSFUL. ACCESS GRANTED."
-        })
-    else:
+        if password == APP_PASSWORD:
+            session['authenticated'] = True
+            return jsonify({
+                "success": True,
+                "message": "AUTHENTICATION SUCCESSFUL. ACCESS GRANTED."
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "message": "ACCESS DENIED: INVALID SECURITY PASSWORD."
+            }), 200
+    except Exception as e:
         return jsonify({
             "success": False,
-            "message": "ACCESS DENIED: INVALID SECURITY PASSWORD."
-        }), 401
+            "message": f"SYSTEM ERROR: {str(e)}"
+        }), 200
+
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
@@ -61,7 +68,7 @@ def get_session():
 
 @app.route('/api/ask', methods=['POST'])
 def ask_question():
-    """Q&A endpoint (Requires authentication session)."""
+    """Q&A endpoint (Requires authentication session). Guaranteed 200 JSON return."""
     if not session.get('authenticated'):
         return jsonify({
             "error": "UNAUTHORIZED: Access restricted. Please authenticate first."
@@ -82,9 +89,22 @@ def ask_question():
     except (ValueError, TypeError):
         max_chars = 300
 
-    # Process query through Google Drive PDF Context + Gemini API
-    result = drive_service.ask_gemini(question=question, max_chars=max_chars)
-    return jsonify(result)
+    try:
+        # Process query through Google Drive PDF Context + Gemini API
+        result = drive_service.ask_gemini(question=question, max_chars=max_chars)
+        return jsonify(result), 200
+    except Exception as e:
+        print(f"[app.py Safe Catch] Q&A Exception: {e}")
+        error_msg = f"😭 処理中にエラーが発生しました: {str(e)}"
+        return jsonify({
+            "answer": error_msg,
+            "char_count": len(error_msg),
+            "max_chars": max_chars,
+            "document_count": 0,
+            "sources": ["システム設定"],
+            "is_mock": True
+        }), 200
+
 
 @app.route('/api/drive/status', methods=['GET'])
 def drive_status():
