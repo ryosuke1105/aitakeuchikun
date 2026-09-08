@@ -1,0 +1,23 @@
+# Environment Variables & Secret Files (DO NOT COMMIT)
+.env
+*.json
+!credentials.json.example
+
+# Python Cache & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+ENV/
+.venv
+
+# IDE / Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Junk Files
+.DS_Store
+Thumbs.db
