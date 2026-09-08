@@ -254,16 +254,17 @@ class DriveGeminiService:
             "あなたはGoogle Driveの複数PDF資料を横断解析する【超高度AIアナリスト】です。\n\n"
             "【回答生成の絶対ルール】\n"
             "1. 【資料の網羅的参照】提供された資料群の内容を多角的に分析し、質問に対して最も事実に基づいた正確で論理的な回答を作成してください。\n"
-            "2. 【理由と根拠の明確化】単なる結論だけでなく「なぜそう言えるのか」の背景や根拠、具体的な事実を資料から抽出して解説してください。\n"
-            "3. 【厳格な文字数遵守】指定された文字数（" + str(max_chars) + "文字以内）を絶対に厳守してください。文章が途中で切れることなく、自然で美しい日本語で完結させてください。\n"
-            "4. 【簡潔な表現】「資料によると」などの余計な前置きは省き、核心をついた分かりやすい文章構成にしてください。"
+            "2. 【文字数の最大活用】指定された上限文字数（" + str(max_chars) + "文字）をしっかり活用し、簡略化しすぎず要点と理由を詳しくボリュームを持たせて解説してください。\n"
+            "3. 【文章の完結】文章は絶対に途中で途切れさせず、必ず最後の句読点（。）まで自然で美しい日本語で書ききってください。\n"
+            "4. 【洗練された表現】「資料によると」などの前置きは省き、見やすく構成してください。"
         )
 
         user_prompt_text = (
             f"【参照PDF資料データベース】\n{full_context}\n\n"
             f"【ユーザーからの質問】\n{question}\n\n"
-            f"【指示】\n上記PDF資料の内容に基づき、絶対に {max_chars} 文字以内の完結した正確な日本語で回答してください。"
+            f"【指示】\n上記PDF資料の内容に基づき、指定文字数（{max_chars}文字以内）をめいっぱい活用して、途中で途切れることなく【最後の句読点（。）まで】詳しく解説した日本語で回答してください。"
         )
+
 
         if fallback_pdf_parts:
             gemini_payload = [user_prompt_text] + fallback_pdf_parts
@@ -352,25 +353,27 @@ class DriveGeminiService:
 
     def _enforce_character_limit(self, text: str, max_chars: int) -> str:
         """
-        Safely trim text to strictly <= max_chars without breaking sentence flow.
+        Safely manage text length to match max_chars while ensuring complete sentences.
         """
         text = text.strip()
         if len(text) <= max_chars:
             return text
 
         truncated = text[:max_chars]
-        # Look for punctuation near the end to end gracefully
-        punctuations = ['。', '！', '？', '\n', '.', '!', '?']
+        punctuations = ['。', '！', '？', '\n']
         last_punct = -1
         for p in punctuations:
             idx = truncated.rfind(p)
             if idx > last_punct:
                 last_punct = idx
 
-        if last_punct > int(max_chars * 0.5):
+        # Only trim at punctuation if it retains at least 80% of target max_chars
+        if last_punct >= int(max_chars * 0.75):
             return truncated[:last_punct + 1]
         else:
-            return truncated + "..."
+            # Otherwise append graceful completion mark
+            return truncated.rstrip() + "..."
+
 
     def _generate_mock_answer(self, question: str, max_chars: int) -> str:
         """Generate cute mock answer when API keys are not provided."""
