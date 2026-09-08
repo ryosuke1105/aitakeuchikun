@@ -107,7 +107,7 @@ class DriveGeminiService:
             try:
                 service = self._get_drive_service()
                 query = f"'{self.drive_folder_id}' in parents and mimeType='application/pdf' and trashed=false"
-                results = service.files().list(q=query, fields="files(id, name)").execute()
+                results = service.files().list(q=query, fields="files(id, name)", pageSize=30, orderBy="modifiedTime desc").execute()
                 files = results.get('files', [])
 
                 if not files:

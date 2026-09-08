@@ -18,25 +18,12 @@ APP_PASSWORD = os.getenv("APP_PASSWORD", "CYBER_SECRET_2026")
 # Initialize Drive & Gemini Service instance
 drive_service = DriveGeminiService()
 
-# Background Pre-fetch on Server Startup so first question is instant
-def _warmup_drive_cache():
-    try:
-        time.sleep(3)
-        print("[Startup Pre-fetch] Background loading Google Drive PDFs...")
-        drive_service.fetch_all_pdfs(force_refresh=True)
-        print("[Startup Pre-fetch] Google Drive PDF cache warm-up COMPLETE!")
-    except Exception as e:
-        print(f"[Startup Pre-fetch] Info: {e}")
-
-threading.Thread(target=_warmup_drive_cache, daemon=True).start()
-
-
-
 @app.route('/')
 def index():
     """Render the main SPA index page."""
     is_authenticated = session.get('authenticated', False)
     return render_template('index.html', authenticated=is_authenticated)
+
 
 @app.route('/api/login', methods=['POST'])
 def login():
