@@ -40,11 +40,18 @@ class DriveGeminiService:
         try:
             # Parse JSON string from environment variable
             info = json.loads(self.service_account_json)
+            # Ensure private_key newlines are properly unescaped for RSA PEM format
+            if isinstance(info, dict) and "private_key" in info:
+                pk = info["private_key"]
+                if "\\n" in pk:
+                    info["private_key"] = pk.replace("\\n", "\n")
+
             scopes = ['https://www.googleapis.com/auth/drive.readonly']
             credentials = service_account.Credentials.from_service_account_info(info, scopes=scopes)
             return build('drive', 'v3', credentials=credentials)
         except Exception as e:
             raise RuntimeError(f"Google Drive サービスアカウントの認証失敗: {str(e)}")
+
 
     def _download_single_pdf(self, service, f) -> Dict[str, Any]:
         """Download and extract a single PDF file concurrently."""

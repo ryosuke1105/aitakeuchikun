@@ -47,10 +47,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ password })
                 });
 
-                const data = await response.json();
+                let data;
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    throw new Error(`サーバーエラー (${response.status}): HTML応答が返されました`);
+                }
 
                 if (response.ok && data.success) {
-                    // Trigger Hollywood Glitch Blackout Transition
                     triggerScreenTransition();
                 } else {
                     cyberErrorMsg.textContent = `> ${data.message || 'ACCESS DENIED: INVALID PASSCODE'}`;
@@ -59,13 +65,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (err) {
                 console.error('Authentication API error:', err);
-                cyberErrorMsg.textContent = '> CRITICAL SYSTEM ERROR: NETWORK COMMUNICATION FAILED.';
+                cyberErrorMsg.textContent = `> ${err.message || 'CRITICAL SYSTEM ERROR'}`;
             } finally {
                 authBtn.disabled = false;
                 authBtn.textContent = '[ AUTHENTICATE / ENTER ]';
             }
         });
     }
+
 
     /**
      * Executes the Noise Glitch Blackout Transition from Screen A to Screen B
@@ -146,7 +153,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const data = await response.json();
+                let data;
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    throw new Error(`サーバーエラー (${response.status}): サーバーから応答がありません`);
+                }
 
                 if (!response.ok || data.error) {
                     throw new Error(data.error || 'API Error');
@@ -154,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Render Results
                 renderKawaiiAnswer(data);
+
 
             } catch (err) {
                 console.error('Q&A submit error:', err);
