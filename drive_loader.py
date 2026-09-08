@@ -254,15 +254,15 @@ class DriveGeminiService:
             "あなたはGoogle Driveの複数PDF資料を横断解析する【超高度AIアナリスト】です。\n\n"
             "【回答生成の絶対ルール】\n"
             "1. 【資料の網羅的参照】提供された資料群の内容を多角的に分析し、質問に対して最も事実に基づいた正確で論理的な回答を作成してください。\n"
-            "2. 【文字数の最大活用】指定された上限文字数（" + str(max_chars) + "文字）をしっかり活用し、簡略化しすぎず要点と理由を詳しくボリュームを持たせて解説してください。\n"
+            "2. 【文字数の最大活用】指定された上限文字数（" + str(max_chars) + "文字）に対し、その80%〜100%（約" + str(int(max_chars * 0.8)) + "〜" + str(max_chars) + "文字）に達するよう、資料の背景、具体的根拠、詳細な説明を豊富に盛り込んで長文で詳しく記述してください。\n"
             "3. 【文章の完結】文章は絶対に途中で途切れさせず、必ず最後の句読点（。）まで自然で美しい日本語で書ききってください。\n"
-            "4. 【洗練された表現】「資料によると」などの前置きは省き、見やすく構成してください。"
+            "4. 【洗練された表現】「資料によると」などの前置きは省き、見やすく分かりやすく構成してください。"
         )
 
         user_prompt_text = (
             f"【参照PDF資料データベース】\n{full_context}\n\n"
             f"【ユーザーからの質問】\n{question}\n\n"
-            f"【指示】\n上記PDF資料の内容に基づき、指定文字数（{max_chars}文字以内）をめいっぱい活用して、途中で途切れることなく【最後の句読点（。）まで】詳しく解説した日本語で回答してください。"
+            f"【指示】\n上記PDF資料の内容に基づき、指定文字数（{max_chars}文字以内、目標: {int(max_chars*0.8)}〜{max_chars}文字）をしっかり使って、途中で途切れることなく【最後の句読点（。）まで】詳しくボリューミーに解説した日本語で回答してください。"
         )
 
 
@@ -273,11 +273,12 @@ class DriveGeminiService:
 
         try:
             candidate_names = [
+                "gemini-1.5-flash",
+                "gemini-2.0-flash",
+                "gemini-1.5-pro",
                 "gemini-2.5-flash",
                 "gemini-3.6-flash",
-                "gemini-3.5-flash",
-                "gemini-flash-latest",
-                "gemini-2.5-pro",
+                "gemini-1.5-flash-latest",
                 "gemini-pro-latest"
             ]
 
@@ -296,7 +297,7 @@ class DriveGeminiService:
                         gemini_payload,
                         generation_config=genai.types.GenerationConfig(
                             temperature=0.2,  # Low temperature for exact factuality
-                            max_output_tokens=1500
+                            max_output_tokens=3000
                         )
                     )
                     if res and res.text:

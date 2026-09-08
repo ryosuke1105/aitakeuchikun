@@ -137,52 +137,61 @@ document.addEventListener('DOMContentLoaded', () => {
             askBtn.disabled = true;
             askBtn.style.opacity = '0.7';
 
-            try {
-                const response = await fetch('/api/ask', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        question: question,
-                        max_chars: maxChars
-                    })
-                });
+            let attempts = 0;
+            const maxAttempts = 3;
+            let success = false;
 
-                if (response.status === 401) {
-                    alert('セッションが切れちゃった！もう一度認証してね♪');
-                    location.reload();
-                    return;
+            while (attempts < maxAttempts && !success) {
+                attempts++;
+                try {
+                    const response = await fetch('/api/ask', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            question: question,
+                            max_chars: maxChars
+                        })
+                    });
+
+                    if (response.status === 401) {
+                        alert('セッションが切れちゃった！もう一度認証してね♪');
+                        location.reload();
+                        return;
+                    }
+
+                    const contentType = response.headers.get('content-type') || '';
+                    if (response.ok && contentType.includes('application/json')) {
+                        const data = await response.json();
+                        if (data.error) throw new Error(data.error);
+                        renderKawaiiAnswer(data);
+                        success = true;
+                        break;
+                    } else {
+                        // If 502 or server waking up, wait 2.5s and retry automatically
+                        if (attempts < maxAttempts) {
+                            console.warn(`Render server waking up (attempt ${attempts}/${maxAttempts})... Retrying in 2.5s`);
+                            await new Promise(r => setTimeout(r, 2500));
+                            continue;
+                        } else {
+                            throw new Error(`サーバー準備中 (${response.status})。もう一度「質問する」を押してね！`);
+                        }
+                    }
+                } catch (err) {
+                    console.error(`Q&A attempt ${attempts} failed:`, err);
+                    if (attempts < maxAttempts && (err.message.includes('Failed to fetch') || err.message.includes('502'))) {
+                        await new Promise(r => setTimeout(r, 2500));
+                        continue;
+                    } else {
+                        renderKawaiiError(err.message || '通信エラーが発生しました');
+                        break;
+                    }
                 }
-
-                let data;
-                const contentType = response.headers.get('content-type') || '';
-                if (contentType.includes('application/json')) {
-                    data = await response.json();
-                } else {
-                    const text = await response.text();
-                    throw new Error(`サーバーエラー (${response.status}): サーバーから応答がありません`);
-                }
-
-                if (!response.ok || data.error) {
-                    throw new Error(data.error || 'API Error');
-                }
-
-                // Render Results
-                renderKawaiiAnswer(data);
-
-
-            } catch (err) {
-                console.error('Q&A submit error:', err);
-                let msg = err.message || '通信エラーが発生しました';
-                if (msg.includes('Failed to fetch')) {
-                    msg = 'サーバーが再起動中か、一時的に接続が途切れちゃいました！もう一回「質問する」ボタンを押してみてね♪💖';
-                }
-                renderKawaiiError(msg);
-            } finally {
-
-                kawaiiLoading.style.display = 'none';
-                askBtn.disabled = false;
-                askBtn.style.opacity = '1';
             }
+
+            kawaiiLoading.style.display = 'none';
+            askBtn.disabled = false;
+            askBtn.style.opacity = '1';
+
         });
     }
 
