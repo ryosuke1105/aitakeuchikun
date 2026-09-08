@@ -56,7 +56,7 @@ class DriveGeminiService:
             raise RuntimeError(f"Google Drive サービスアカウントの認証失敗: {str(e)}")
 
     def _download_single_pdf(self, service, f) -> Dict[str, Any]:
-        """Download and extract a single PDF file with lightweight memory footprint."""
+        """Download and extract a single PDF file with safe error isolation."""
         file_id = f['id']
         file_name = f['name']
         try:
@@ -69,9 +69,15 @@ class DriveGeminiService:
             
             fh.seek(0)
             pdf_bytes = fh.read()
+
+            # Skip oversized files (>15MB) to keep memory safe
+            if len(pdf_bytes) > 15 * 1024 * 1024:
+                print(f"[DriveGeminiService] Skipping large PDF ({len(pdf_bytes)} bytes): {file_name}")
+                return {'id': file_id, 'name': file_name, 'text': f"[{file_name} は大容量のためスキップ]"}
+
             extracted_text = self._extract_pdf_text(pdf_bytes, file_name)
             
-            # Immediately release heavy binary bytes to save RAM
+            # Immediately release heavy binary bytes
             del pdf_bytes
             fh.close()
             gc.collect()
@@ -82,12 +88,12 @@ class DriveGeminiService:
                 'text': extracted_text
             }
         except Exception as e:
-            print(f"[DriveGeminiService] Error downloading {file_name}: {e}")
-            return None
+            print(f"[DriveGeminiService] Safe skip for {file_name}: {e}")
+            return {'id': file_id, 'name': file_name, 'text': f"[{file_name} 読み込みスキップ]"}
 
     def fetch_all_pdfs(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
         """
-        Fetch all PDF files from target folder in parallel with low memory footprint.
+        Fetch all PDF files from target folder safely.
         """
         with self._lock:
             now = time.time()
@@ -107,10 +113,9 @@ class DriveGeminiService:
                 if not files:
                     return self._get_fallback_pdfs()
 
-                print(f"[DriveGeminiService] Fetching {len(files)} PDFs (Low-memory mode)...")
+                print(f"[DriveGeminiService] Fetching {len(files)} PDFs (Safe mode)...")
                 loaded_pdfs = []
-                # Use max_workers=3 for low RAM consumption on Render free tier (512MB)
-                with ThreadPoolExecutor(max_workers=3) as executor:
+                with ThreadPoolExecutor(max_workers=2) as executor:
                     futures = [executor.submit(self._download_single_pdf, service, f) for f in files]
                     for future in as_completed(futures):
                         res = future.result()
@@ -130,23 +135,25 @@ class DriveGeminiService:
                 print(f"[DriveGeminiService] Failed to load PDFs: {e}")
                 return self._get_fallback_pdfs()
 
-
-
     def _extract_pdf_text(self, pdf_bytes: bytes, file_name: str) -> str:
-
-        """Helper to extract plain text from PDF bytes using pypdf if available."""
+        """Helper to extract plain text from PDF bytes using pypdf safely."""
         try:
             import pypdf
-            reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
+            reader = pypdf.PdfReader(io.BytesIO(pdf_bytes), strict=False)
             text_pages = []
             for idx, page in enumerate(reader.pages):
-                extracted = page.extract_text() or ""
-                if extracted.strip():
-                    text_pages.append(f"--- Page {idx+1} ---\n{extracted}")
-            return "\n".join(text_pages)
+                try:
+                    extracted = page.extract_text() or ""
+                    if extracted.strip():
+                        text_pages.append(f"--- Page {idx+1} ---\n{extracted}")
+                except Exception as page_e:
+                    print(f"Page {idx+1} skipped in {file_name}: {page_e}")
+                    continue
+            return "\n".join(text_pages) if text_pages else f"[{file_name} のテキスト抽出なし]"
         except Exception as e:
-            print(f"pypdf extraction skipped or failed for {file_name}: {e}")
-            return f"[{file_name} のバイナリデータ (テキスト抽出なし)]"
+            print(f"pypdf extraction skipped for {file_name}: {e}")
+            return f"[{file_name} のテキスト抽出なし]"
+
 
     def _get_fallback_pdfs(self) -> List[Dict[str, Any]]:
         """Fallback demo documents when Drive API is not connected."""
