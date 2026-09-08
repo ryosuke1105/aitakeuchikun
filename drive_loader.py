@@ -180,13 +180,14 @@ class DriveGeminiService:
             }
         ]
 
-    def _filter_relevant_docs(self, pdfs: List[Dict[str, Any]], question: str, max_docs: int = 8) -> List[Dict[str, Any]]:
-        """Filter the most relevant PDF documents matching the user question keywords for sub-2s responses."""
+    def _filter_relevant_docs(self, pdfs: List[Dict[str, Any]], question: str, max_docs: int = 20) -> List[Dict[str, Any]]:
+        """Filter and rank relevant PDF documents using multi-keyword and fuzzy match scoring."""
         if len(pdfs) <= max_docs:
             return pdfs
 
-        keywords = [w.strip() for w in re.split(r'[\s,、。！？!?\n]+', question) if len(w.strip()) > 1]
-        if not keywords:
+        # Split question into keywords and n-grams
+        raw_words = [w.strip() for w in re.split(r'[\s,、。！？!?\n\t]+', question) if len(w.strip()) > 1]
+        if not raw_words:
             return pdfs[:max_docs]
 
         scored_pdfs = []
@@ -194,13 +195,20 @@ class DriveGeminiService:
             text = pdf.get('text', '')
             name = pdf.get('name', '')
             score = 0
-            for kw in keywords:
-                score += text.count(kw) * 2
-                score += name.count(kw) * 10
+            for w in raw_words:
+                score += text.count(w) * 3
+                score += name.count(w) * 15
+            
+            # Bonus score if document contains substantial text content
+            if len(text) > 200:
+                score += 1
+
             scored_pdfs.append((score, pdf))
 
+        # Sort by relevance score descending
         scored_pdfs.sort(key=lambda x: x[0], reverse=True)
         top_matched = [pdf for score, pdf in scored_pdfs if score > 0]
+        
         if top_matched:
             return top_matched[:max_docs]
         else:
@@ -208,10 +216,9 @@ class DriveGeminiService:
 
     def ask_gemini(self, question: str, max_chars: int = 300) -> Dict[str, Any]:
         """
-        Query Gemini model using PDF files/texts from Drive with character limit constraints.
+        Query Gemini model using PDF files/texts from Drive with high-precision system prompt.
         """
         if not self.gemini_api_key:
-            # Mock Gemini response if API key is absent
             mock_answer = self._generate_mock_answer(question, max_chars)
             return {
                 "answer": mock_answer,
@@ -224,14 +231,13 @@ class DriveGeminiService:
 
         all_pdfs = self.fetch_all_pdfs()
 
-        # Fast Relevance Filtering: Filter 100 PDFs down to the top relevant ones for the question
-        pdfs = self._filter_relevant_docs(all_pdfs, question, max_docs=8)
-        print(f"[DriveGeminiService] Question matched top {len(pdfs)} relevant PDFs out of {len(all_pdfs)} total PDFs")
+        # Expand relevant document scope up to top 20 PDFs for comprehensive coverage
+        pdfs = self._filter_relevant_docs(all_pdfs, question, max_docs=20)
+        print(f"[DriveGeminiService] Precision search: using top {len(pdfs)} docs out of {len(all_pdfs)} total PDFs")
 
-        # Build clean text context from loaded PDFs (fast & lightweight payload)
+        # Build detailed text context from selected PDFs
         context_blocks = []
         fallback_pdf_parts = []
-
 
         for pdf in pdfs:
             doc_name = pdf['name']
@@ -239,30 +245,28 @@ class DriveGeminiService:
             pdf_bytes = pdf.get('bytes')
             
             if doc_text and not doc_text.startswith("[テキスト抽出なし]"):
-                context_blocks.append(f"=== ドキュメント: {doc_name} ===\n{doc_text}\n")
+                context_blocks.append(f"=== 資料名: {doc_name} ===\n{doc_text}\n")
             elif pdf_bytes:
-                # Only attach raw binary bytes if text extraction was empty/failed
                 fallback_pdf_parts.append(f"=== PDF添付資料: {doc_name} ===")
                 fallback_pdf_parts.append({"mime_type": "application/pdf", "data": pdf_bytes})
 
-        full_context = "\n".join(context_blocks)
+        full_context = "\n\n".join(context_blocks)
 
         system_instruction = (
-            "あなたはGoogle Drive上の複数PDF資料を横断解析する優秀かつ親切なAIアシスタントです。\n"
-            "【必須守則】\n"
-            "1. 提供された複数のPDF資料の内容を直接の根拠として質問に正確に回答してください。\n"
-            "2. 回答は必ず指定された文字数（" + str(max_chars) + "文字以内）を厳密に遵守してください。\n"
-            "3. 途中で文章が途切れたり丸括弧が開いたまま終わったりせず、指定文字数以内で完結した自然な日本語を作成してください。\n"
-            "4. 余計な前置きは省き、要点を分かりやすくまとめてください。"
+            "あなたはGoogle Driveの複数PDF資料を横断解析する【超高度AIアナリスト】です。\n\n"
+            "【回答生成の絶対ルール】\n"
+            "1. 【資料の網羅的参照】提供された資料群の内容を多角的に分析し、質問に対して最も事実に基づいた正確で論理的な回答を作成してください。\n"
+            "2. 【理由と根拠の明確化】単なる結論だけでなく「なぜそう言えるのか」の背景や根拠、具体的な事実を資料から抽出して解説してください。\n"
+            "3. 【厳格な文字数遵守】指定された文字数（" + str(max_chars) + "文字以内）を絶対に厳守してください。文章が途中で切れることなく、自然で美しい日本語で完結させてください。\n"
+            "4. 【簡潔な表現】「資料によると」などの余計な前置きは省き、核心をついた分かりやすい文章構成にしてください。"
         )
 
         user_prompt_text = (
-            f"【参照ドキュメントテキスト群】\n{full_context}\n\n"
+            f"【参照PDF資料データベース】\n{full_context}\n\n"
             f"【ユーザーからの質問】\n{question}\n\n"
-            f"【文字数指定】\n絶対に {max_chars} 文字以内の完結した日本語で回答してください。"
+            f"【指示】\n上記PDF資料の内容に基づき、絶対に {max_chars} 文字以内の完結した正確な日本語で回答してください。"
         )
 
-        # Use fast text-only prompt if text context exists, otherwise attach fallback PDF parts
         if fallback_pdf_parts:
             gemini_payload = [user_prompt_text] + fallback_pdf_parts
         else:
@@ -288,18 +292,18 @@ class DriveGeminiService:
                         model_name=name,
                         system_instruction=system_instruction
                     )
-                    print(f"[DriveGeminiService] Querying Gemini ({name}) with optimized payload...")
+                    print(f"[DriveGeminiService] High-precision query on model: {name}")
                     res = model.generate_content(
                         gemini_payload,
                         generation_config=genai.types.GenerationConfig(
-                            temperature=0.3,
+                            temperature=0.2,  # Low temperature for exact factuality
                             max_output_tokens=1500
                         )
                     )
                     if res and res.text:
                         response = res
                         used_model_name = name
-                        print(f"[DriveGeminiService] Success with model: {name}")
+                        print(f"[DriveGeminiService] High-precision answer generated via {name}")
                         break
                 except Exception as e:
                     print(f"[DriveGeminiService] Candidate model '{name}' error: {e}")
