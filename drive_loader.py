@@ -107,7 +107,7 @@ class DriveGeminiService:
             try:
                 service = self._get_drive_service()
                 query = f"'{self.drive_folder_id}' in parents and mimeType='application/pdf' and trashed=false"
-                results = service.files().list(q=query, fields="files(id, name)", pageSize=30, orderBy="modifiedTime desc").execute()
+                results = service.files().list(q=query, fields="files(id, name)", pageSize=10, orderBy="modifiedTime desc").execute()
                 files = results.get('files', [])
 
                 if not files:
@@ -180,12 +180,11 @@ class DriveGeminiService:
             }
         ]
 
-    def _filter_relevant_docs(self, pdfs: List[Dict[str, Any]], question: str, max_docs: int = 20) -> List[Dict[str, Any]]:
+    def _filter_relevant_docs(self, pdfs: List[Dict[str, Any]], question: str, max_docs: int = 10) -> List[Dict[str, Any]]:
         """Filter and rank relevant PDF documents using multi-keyword and fuzzy match scoring."""
         if len(pdfs) <= max_docs:
             return pdfs
 
-        # Split question into keywords and n-grams
         raw_words = [w.strip() for w in re.split(r'[\s,、。！？!?\n\t]+', question) if len(w.strip()) > 1]
         if not raw_words:
             return pdfs[:max_docs]
@@ -199,13 +198,11 @@ class DriveGeminiService:
                 score += text.count(w) * 3
                 score += name.count(w) * 15
             
-            # Bonus score if document contains substantial text content
             if len(text) > 200:
                 score += 1
 
             scored_pdfs.append((score, pdf))
 
-        # Sort by relevance score descending
         scored_pdfs.sort(key=lambda x: x[0], reverse=True)
         top_matched = [pdf for score, pdf in scored_pdfs if score > 0]
         
@@ -231,9 +228,10 @@ class DriveGeminiService:
 
         all_pdfs = self.fetch_all_pdfs()
 
-        # Expand relevant document scope up to top 20 PDFs for comprehensive coverage
-        pdfs = self._filter_relevant_docs(all_pdfs, question, max_docs=20)
+        # Match top 10 relevant PDFs for ultra-fast response
+        pdfs = self._filter_relevant_docs(all_pdfs, question, max_docs=10)
         print(f"[DriveGeminiService] Precision search: using top {len(pdfs)} docs out of {len(all_pdfs)} total PDFs")
+
 
         # Build detailed text context from selected PDFs
         context_blocks = []
