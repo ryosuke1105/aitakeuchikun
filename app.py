@@ -1,6 +1,8 @@
 import os
+import time
 import threading
 from flask import Flask, render_template, request, jsonify, session
+
 from dotenv import load_dotenv
 from drive_loader import DriveGeminiService
 
@@ -19,6 +21,7 @@ drive_service = DriveGeminiService()
 # Background Pre-fetch on Server Startup so first question is instant
 def _warmup_drive_cache():
     try:
+        time.sleep(3)
         print("[Startup Pre-fetch] Background loading Google Drive PDFs...")
         drive_service.fetch_all_pdfs(force_refresh=True)
         print("[Startup Pre-fetch] Google Drive PDF cache warm-up COMPLETE!")
@@ -26,6 +29,7 @@ def _warmup_drive_cache():
         print(f"[Startup Pre-fetch] Info: {e}")
 
 threading.Thread(target=_warmup_drive_cache, daemon=True).start()
+
 
 
 @app.route('/')

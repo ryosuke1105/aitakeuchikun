@@ -4,6 +4,7 @@ import time
 import io
 import re
 import threading
+import gc
 from typing import List, Dict, Any, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
@@ -31,16 +32,17 @@ class DriveGeminiService:
         if self.gemini_api_key:
             genai.configure(api_key=self.gemini_api_key)
 
-
     def _get_drive_service(self):
         """Initialize and return Google Drive API service client."""
         if not self.service_account_json:
             raise ValueError("GOOGLE_SERVICE_ACCOUNT_JSON 環境変数が設定されていません。")
         
         try:
-            # Parse JSON string from environment variable
-            info = json.loads(self.service_account_json)
-            # Ensure private_key newlines are properly unescaped for RSA PEM format
+            raw = self.service_account_json.strip()
+            if (raw.startswith("'") and raw.endswith("'")) or (raw.startswith('"') and raw.endswith('"')):
+                raw = raw[1:-1].strip()
+
+            info = json.loads(raw)
             if isinstance(info, dict) and "private_key" in info:
                 pk = info["private_key"]
                 if "\\n" in pk:
@@ -50,11 +52,11 @@ class DriveGeminiService:
             credentials = service_account.Credentials.from_service_account_info(info, scopes=scopes)
             return build('drive', 'v3', credentials=credentials)
         except Exception as e:
+            print(f"[DriveGeminiService] Auth Exception: {e}")
             raise RuntimeError(f"Google Drive サービスアカウントの認証失敗: {str(e)}")
 
-
     def _download_single_pdf(self, service, f) -> Dict[str, Any]:
-        """Download and extract a single PDF file concurrently."""
+        """Download and extract a single PDF file with lightweight memory footprint."""
         file_id = f['id']
         file_name = f['name']
         try:
@@ -68,11 +70,15 @@ class DriveGeminiService:
             fh.seek(0)
             pdf_bytes = fh.read()
             extracted_text = self._extract_pdf_text(pdf_bytes, file_name)
-            print(f"[DriveGeminiService] Concurrently loaded {file_name} ({len(extracted_text)} chars)")
+            
+            # Immediately release heavy binary bytes to save RAM
+            del pdf_bytes
+            fh.close()
+            gc.collect()
+
             return {
                 'id': file_id,
                 'name': file_name,
-                'bytes': pdf_bytes,
                 'text': extracted_text
             }
         except Exception as e:
@@ -81,17 +87,14 @@ class DriveGeminiService:
 
     def fetch_all_pdfs(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
         """
-        Fetch all PDF files from the target Google Drive folder in parallel.
-        Thread-safe: uses in-memory cache if valid.
+        Fetch all PDF files from target folder in parallel with low memory footprint.
         """
         with self._lock:
             now = time.time()
             if not force_refresh and self._pdf_cache and (now - self._cache_timestamp < self._cache_ttl):
-                print(f"[DriveGeminiService] Using IN-MEMORY CACHE for {len(self._pdf_cache)} PDFs (0.00s)")
                 return self._pdf_cache
 
             if not self.drive_folder_id or not self.service_account_json:
-                print("[DriveGeminiService] Credentials missing. Using Fallback Demo Context.")
                 return self._get_fallback_pdfs()
 
             t_start = time.time()
@@ -102,12 +105,12 @@ class DriveGeminiService:
                 files = results.get('files', [])
 
                 if not files:
-                    print(f"[DriveGeminiService] No PDFs found in folder {self.drive_folder_id}. Using demo fallback.")
                     return self._get_fallback_pdfs()
 
-                print(f"[DriveGeminiService] Fetching {len(files)} PDF files from Google Drive in parallel...")
+                print(f"[DriveGeminiService] Fetching {len(files)} PDFs (Low-memory mode)...")
                 loaded_pdfs = []
-                with ThreadPoolExecutor(max_workers=12) as executor:
+                # Use max_workers=3 for low RAM consumption on Render free tier (512MB)
+                with ThreadPoolExecutor(max_workers=3) as executor:
                     futures = [executor.submit(self._download_single_pdf, service, f) for f in files]
                     for future in as_completed(futures):
                         res = future.result()
@@ -124,8 +127,9 @@ class DriveGeminiService:
                     return self._get_fallback_pdfs()
 
             except Exception as e:
-                print(f"[DriveGeminiService] Failed to load PDFs from Drive: {e}")
+                print(f"[DriveGeminiService] Failed to load PDFs: {e}")
                 return self._get_fallback_pdfs()
+
 
 
     def _extract_pdf_text(self, pdf_bytes: bytes, file_name: str) -> str:
